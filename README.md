@@ -6,8 +6,7 @@ This tool is made in Python3
 * pip install pymongo
 * pip install bson
 * pip install httplib2
-* pip install --upgrade google-api-python-client
-
+* pip install --upgrade google-api-python-client 
 * Write the name of the database on line 28
 * Rename the client_secret.json
 * Placing them(mongodb_backup.py and client_secret.json) in the home directory
