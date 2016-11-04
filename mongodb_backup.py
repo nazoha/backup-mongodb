@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from __future__ import print_function
 from os.path import join
 from bson.json_util import dumps
@@ -11,7 +12,10 @@ from oauth2client import client
 from oauth2client import tools
 from oauth2client import file
 from googleapiclient.http import MediaFileUpload
+from datetime import date
 import glob
+import tarfile
+
 
 try:
     import argparse
@@ -22,15 +26,15 @@ except ImportError:
 SCOPES = 'https://www.googleapis.com/auth/drive'
 CLIENT_SECRET_FILE = str(os.path.abspath(os.path.dirname(__file__))) + '/client_secret.json'
 APPLICATION_NAME = 'mongo-backup'
-JSON_DIR = str(os.path.abspath(os.path.dirname(__file__)))
-FOLDER = 'mongo_backup'
+JSON_DIR = str(os.path.abspath(os.path.dirname(__file__)))+'/data'
+FOLDER = 'mongodb_backup'
 FILE_MIMYTYPE = 'application/json'
-DB_NAME = 'study'  # input databasename crowi's
+DB_NAME = 'test'  # input databasename crowi's
 EXTENSION = '.json'
-
+BACKUP_EXTENSION = '.tar.gz'
 
 def mongodb_backup(backup_db_dir):
-    client = pymongo.MongoClient(host="127.0.0.1", port=27017)
+    client = pymongo.MongoClient(host="130.211.153.118", port=27017)
     database = client[DB_NAME]
     # Please write username and password of mongodb if mongodb requires authentication.
     # authenticated = database.authenticate("username","passwd")
@@ -43,6 +47,9 @@ def mongodb_backup(backup_db_dir):
         jsonpath = join(backup_db_dir, jsonpath)
         with open(jsonpath, 'w') as jsonfile:
             jsonfile.write(dumps(collection))
+    tar = tarfile.open(os.path.join(backup_db_dir, 'daxiv_'+date.today().isoformat()+BACKUP_EXTENSION), 'w:gz')
+    tar.add(backup_db_dir)
+    tar.close()
 
 def get_credentials():
     home_dir = os.path.expanduser('~')
@@ -74,13 +81,14 @@ def create_folder(service):
     print("File ID: %s" % folder.get('id'))
     return folder.get('id')
 
-def upload_file(service, file_name):
-    media_body = MediaFileUpload(file_name, mimetype=FILE_MIMYTYPE, resumable=True)
-    body = {
-        'name': os.path.split(file_name)[-1],
-        'mimeType': FILE_MIMYTYPE,
-    }
-    service.files().create(body=body, media_body=media_body).execute()
+def get_folder(service):
+    response = service.files().list(q="name="+"'"+FOLDER+"'", spaces='drive').execute()
+    if not response:
+        return False
+    folder = response.get('files', [])[0]
+    return folder.get('id')
+
+
 
 def upload_file(service, file_name, folder_id):
     media_body = MediaFileUpload(file_name, mimetype=FILE_MIMYTYPE, resumable=True)
@@ -92,23 +100,24 @@ def upload_file(service, file_name, folder_id):
     service.files().create(body=body, media_body=media_body).execute()
 
 def main():
-    mongodb_backup(str(os.path.expanduser('~')))
+    #mongodb_backup(JSON_DIR)
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('drive', 'v3', http=http)
-    file_path = os.path.join(JSON_DIR, '*' + EXTENSION)
+    file_path = os.path.join(JSON_DIR, '*' + BACKUP_EXTENSION)
     files = glob.glob(file_path)
     if not files:
         print("No files to upload.")
         sys.exit()
-
-    folder_id = create_folder(service)
-
+    folder_id = get_folder(service)
+    if not folder_id:
+        folder_id = create_folder(service)
     for file_name in files:
         if os.path.split(file_name)[-1] == 'client_secret.json':
             continue
         print('upload: ' + file_name)
         upload_file(service, file_name, folder_id)
+        os.remove(file_name)
 
 if __name__ == "__main__":
     main()
