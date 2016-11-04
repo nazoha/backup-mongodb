@@ -100,7 +100,7 @@ def upload_file(service, file_name, folder_id):
     service.files().create(body=body, media_body=media_body).execute()
 
 def main():
-    #mongodb_backup(JSON_DIR)
+    mongodb_backup(JSON_DIR)
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('drive', 'v3', http=http)
