@@ -34,7 +34,7 @@ EXTENSION = '.json'
 BACKUP_EXTENSION = '.tar.gz'
 
 def mongodb_backup(backup_db_dir):
-    client = pymongo.MongoClient(host="130.211.153.118", port=27017)
+    client = pymongo.MongoClient(host="127.0.0.1", port=27017)
     database = client[DB_NAME]
     # Please write username and password of mongodb if mongodb requires authentication.
     # authenticated = database.authenticate("username","passwd")
