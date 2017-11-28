@@ -15,6 +15,7 @@ from googleapiclient.http import MediaFileUpload
 from datetime import date
 import glob
 import tarfile
+import shutil
 
 
 try:
@@ -26,20 +27,23 @@ except ImportError:
 SCOPES = 'https://www.googleapis.com/auth/drive'
 CLIENT_SECRET_FILE = str(os.path.abspath(os.path.dirname(__file__))) + '/client_secret.json'
 APPLICATION_NAME = 'mongo-backup'
-JSON_DIR = str(os.path.abspath(os.path.dirname(__file__)))+'/data'
+JSON_DIR = str(os.path.abspath(os.path.dirname(__file__)))+'/mongobackuptmp'
 FOLDER = 'mongodb_backup'
-FILE_MIMYTYPE = 'application/json'
-DB_NAME = 'test'  # input databasename crowi's
+FILE_MIMETYPE = 'application/tar'
+DB_NAME = 'DB NAME' 
+DB_USER = 'DB USERNAME'
+DB_PASS = 'DB PASSWORD'
 EXTENSION = '.json'
 BACKUP_EXTENSION = '.tar.gz'
 
 def mongodb_backup(backup_db_dir):
     client = pymongo.MongoClient(host="127.0.0.1", port=27017)
     database = client[DB_NAME]
-    # Please write username and password of mongodb if mongodb requires authentication.
-    # authenticated = database.authenticate("username","passwd")
-    # assert authenticated, "Could not authenticate to database!"
+    #Comment out next line if mongo does not require authentication
+    authenticated = database.authenticate(DB_USER,DB_PASS)
     collections = database.collection_names()
+    if not os.path.exists(backup_db_dir):
+        os.makedirs(backup_db_dir)
     for i, collection_name in enumerate(collections):
         col = getattr(database, collections[i])
         collection = col.find()
@@ -47,7 +51,7 @@ def mongodb_backup(backup_db_dir):
         jsonpath = join(backup_db_dir, jsonpath)
         with open(jsonpath, 'w') as jsonfile:
             jsonfile.write(dumps(collection))
-    tar = tarfile.open(os.path.join(backup_db_dir, 'daxiv_'+date.today().isoformat()+BACKUP_EXTENSION), 'w:gz')
+    tar = tarfile.open(os.path.join(backup_db_dir, 'NSdb_'+date.today().isoformat()+BACKUP_EXTENSION), 'w:gz')
     tar.add(backup_db_dir)
     tar.close()
 
@@ -72,52 +76,52 @@ def get_credentials():
 
 
 def create_folder(service):
-    print("Create folder: %s" % (FOLDER))
+    print("Creating folder: %s" % (FOLDER))
     folder_metadata = {
         'name': FOLDER,
         'mimeType': 'application/vnd.google-apps.folder'
     }
     folder = service.files().create(body=folder_metadata, fields='id').execute()
-    print("File ID: %s" % folder.get('id'))
     return folder.get('id')
 
 def get_folder(service):
-    response = service.files().list(q="name="+"'"+FOLDER+"'", spaces='drive').execute()
-    if not response:
+    response = service.files().list(q="mimeType='application/vnd.google-apps.folder' and name="+"'"+FOLDER+"'", spaces='drive', fields='files(id)').execute()
+    if not response.get('files',[]):
         return False
     folder = response.get('files', [])[0]
     return folder.get('id')
 
-
-
 def upload_file(service, file_name, folder_id):
-    media_body = MediaFileUpload(file_name, mimetype=FILE_MIMYTYPE, resumable=True)
+    media_body = MediaFileUpload(file_name, mimetype=FILE_MIMETYPE, resumable=True)
     body = {
         'name': os.path.split(file_name)[-1],
-        'mimeType': FILE_MIMYTYPE,
+        'mimeType': FILE_MIMETYPE,
         'parents': [folder_id],
     }
     service.files().create(body=body, media_body=media_body).execute()
 
 def main():
-    mongodb_backup(JSON_DIR)
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('drive', 'v3', http=http)
+    folder_id = get_folder(service)
+    if not folder_id:
+        folder_id = create_folder(service)
+
+    mongodb_backup(JSON_DIR)
     file_path = os.path.join(JSON_DIR, '*' + BACKUP_EXTENSION)
     files = glob.glob(file_path)
     if not files:
         print("No files to upload.")
         sys.exit()
-    folder_id = get_folder(service)
-    if not folder_id:
-        folder_id = create_folder(service)
+
     for file_name in files:
         if os.path.split(file_name)[-1] == 'client_secret.json':
             continue
         print('upload: ' + file_name)
         upload_file(service, file_name, folder_id)
-        os.remove(file_name)
+
+    shutil.rmtree(JSON_DIR)
 
 if __name__ == "__main__":
     main()
