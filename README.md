@@ -1,15 +1,16 @@
 # backup-mongodb
-To back up to Google Drive  
-This tool is made in Python3 
+Used to back up mongodb to Google Drive in an encrypted 7z file
 
 #Introduction 
 * pip3 install pymongo
 * pip3 install bson
 * pip3 install httplib2
 * pip3 install --upgrade google-api-python-client 
+* apt-get install 7zip-full
 
 ##Required:
 line 33: DB Name
+line 37: zip password
 
 Enable Google Drive API:
 Use this wizard [https://console.developers.google.com/start/api?id=drive] to create or select a project in the Google Developers Console and automatically turn on the API. Click Continue, then Go to credentials.
@@ -25,5 +26,5 @@ When you run the script for the first time it will give you a url to authorize t
 
 ##Options:
 line 31: Folder name in GDrive
-line 34/45: DB Username/Password
+line 34/35: DB Username/Password
 ** Comment out line 43 if db does not require authentication
