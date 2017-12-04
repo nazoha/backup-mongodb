@@ -14,7 +14,6 @@ from oauth2client import file
 from googleapiclient.http import MediaFileUpload
 from datetime import date
 import glob
-import tarfile
 import shutil
 
 
@@ -34,13 +33,15 @@ DB_NAME = 'DB NAME'
 DB_USER = 'DB USERNAME'
 DB_PASS = 'DB PASSWORD'
 EXTENSION = '.json'
-BACKUP_EXTENSION = '.tar.gz'
+BACKUP_EXTENSION = '.zip'
+BACKUP_PASSWORD = 'somepassword'
 
 def mongodb_backup(backup_db_dir):
     client = pymongo.MongoClient(host="127.0.0.1", port=27017)
     database = client[DB_NAME]
-    #Comment out next line if mongo does not require authentication
+    # Please write username and password of mongodb if mongodb requires authentication.
     authenticated = database.authenticate(DB_USER,DB_PASS)
+    # assert authenticated, "Could not authenticate to database!"
     collections = database.collection_names()
     if not os.path.exists(backup_db_dir):
         os.makedirs(backup_db_dir)
@@ -51,9 +52,16 @@ def mongodb_backup(backup_db_dir):
         jsonpath = join(backup_db_dir, jsonpath)
         with open(jsonpath, 'w') as jsonfile:
             jsonfile.write(dumps(collection))
-    tar = tarfile.open(os.path.join(backup_db_dir, 'NSdb_'+date.today().isoformat()+BACKUP_EXTENSION), 'w:gz')
-    tar.add(backup_db_dir)
-    tar.close()
+
+    command = "7z a -p" + BACKUP_PASSWORD + ' \"' + os.path.join(backup_db_dir, 'NSdb_'+date.today().isoformat()+BACKUP_EXTENSION) + "\" " + backup_db_dir 
+
+    print("Executing command: " + command)
+    callreturn = os.system(command);
+    if (callreturn == 0):
+        print('Backup successful')
+    else:
+        print('Something went wrong, 7zip returned: ' + callreturn)
+
 
 def get_credentials():
     home_dir = os.path.expanduser('~')
