@@ -53,7 +53,7 @@ def mongodb_backup(backup_db_dir):
         with open(jsonpath, 'w') as jsonfile:
             jsonfile.write(dumps(collection))
 
-    command = "7z a -p" + BACKUP_PASSWORD + ' \"' + os.path.join(backup_db_dir, 'NSdb_'+date.today().isoformat()+BACKUP_EXTENSION) + "\" " + backup_db_dir 
+    command = "7z a -t7z -m0=lzma2 -mx=9 -ms=on -mhe=on -p" + BACKUP_PASSWORD + ' \"' + os.path.join(backup_db_dir, 'NSdb_'+date.today().isoformat()+BACKUP_EXTENSION) + "\" " + backup_db_dir 
 
     print("Executing command: " + command)
     callreturn = os.system(command);
