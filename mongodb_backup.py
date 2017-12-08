@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import print_function
 from os.path import join
-from bson.json_util import dumps
-import pymongo
 import httplib2
 import os
 import sys
@@ -37,21 +35,14 @@ BACKUP_EXTENSION = '.zip'
 BACKUP_PASSWORD = 'somepassword'
 
 def mongodb_backup(backup_db_dir):
-    client = pymongo.MongoClient(host="127.0.0.1", port=27017)
-    database = client[DB_NAME]
-    # Please write username and password of mongodb if mongodb requires authentication.
-    authenticated = database.authenticate(DB_USER,DB_PASS)
-    # assert authenticated, "Could not authenticate to database!"
-    collections = database.collection_names()
-    if not os.path.exists(backup_db_dir):
-        os.makedirs(backup_db_dir)
-    for i, collection_name in enumerate(collections):
-        col = getattr(database, collections[i])
-        collection = col.find()
-        jsonpath = collection_name + EXTENSION
-        jsonpath = join(backup_db_dir, jsonpath)
-        with open(jsonpath, 'w') as jsonfile:
-            jsonfile.write(dumps(collection))
+	command = "mongodump -u "+DB_USER+" -p "+DB_PASS+" --db "+DB_NAME+" --out "+backup_db_dir
+    
+	print("Executing command: " + command)
+    callreturn = os.system(command);
+    if (callreturn == 0):
+        print('Backup successful')
+    else:
+        print('Something went wrong, mongodump returned: ' + callreturn)
 
     command = "7z a -t7z -m0=lzma2 -mx=9 -ms=on -mhe=on -p" + BACKUP_PASSWORD + ' \"' + os.path.join(backup_db_dir, 'NSdb_'+date.today().isoformat()+BACKUP_EXTENSION) + "\" " + backup_db_dir 
 
