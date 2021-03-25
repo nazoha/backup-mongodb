@@ -28,7 +28,7 @@ APPLICATION_NAME = 'mongo-backup'
 JSON_DIR = str(os.path.abspath(os.path.dirname(__file__)))+'/data'
 FOLDER = 'mongodb_backup'
 FILE_MIMYTYPE = 'application/json'
-DB_NAME = 'test'  # input databasename crowi's
+DB_NAME = 'test'  
 EXTENSION = '.json'
 BACKUP_EXTENSION = '.tar.gz'
 
